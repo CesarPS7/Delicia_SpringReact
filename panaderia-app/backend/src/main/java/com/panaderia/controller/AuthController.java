@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -20,12 +21,12 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Cliente cliente) {
         try {
-            Cliente nuevo = authService.register(cliente);
-            return ResponseEntity.ok(nuevo);
+            Map<String, Object> response = authService.register(cliente);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Error en el registro: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error en el registro: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
 
@@ -35,12 +36,24 @@ public class AuthController {
             String email = body.get("email");
             String password = body.get("password");
 
-            Cliente cliente = authService.login(email, password);
-            return ResponseEntity.ok(cliente);
+            Map<String, Object> response = authService.login(email, password);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Error en el login: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error en el login: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String token) {
+        try {
+            Map<String, Object> profile = authService.getProfile(token);
+            return ResponseEntity.ok(profile);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Token inválido");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
         }
     }
 }

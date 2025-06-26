@@ -6,6 +6,7 @@ com\panaderia\service\impl\EmpleadoServiceImpl.class
 com\panaderia\service\EmpleadoService.class
 com\panaderia\repository\CategoriaRepository.class
 com\panaderia\delicia\security\JwtService.class
+com\panaderia\delicia\security\CustomUserDetailsService.class
 com\panaderia\model\Venta$TipoPago.class
 com\panaderia\repository\ProductoRepository.class
 com\panaderia\service\impl\DetalleVentaServiceImpl.class
@@ -24,6 +25,7 @@ com\panaderia\model\Venta$FormaEntrega.class
 com\panaderia\PanaderiaApp.class
 com\panaderia\controller\ProductoController.class
 com\panaderia\repository\ClienteRepository.class
+com\panaderia\delicia\security\JwtAuthenticationFilter.class
 com\panaderia\config\WebConfig.class
 com\panaderia\model\Producto.class
 com\panaderia\repository\CuponRepository.class

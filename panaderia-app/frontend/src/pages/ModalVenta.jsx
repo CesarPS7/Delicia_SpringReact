@@ -216,10 +216,15 @@ const ModalVenta = ({ isOpen, onClose, cliente, carrito, total }) => {
     };
 
     try {
-      const res = await fetch('http://localhost:8080/api/ventas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(venta)
+        const token = localStorage.getItem("token");
+
+        const res = await fetch('http://localhost:8080/api/ventas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(venta)
       });
 
       if (!res.ok) throw new Error(await res.text());

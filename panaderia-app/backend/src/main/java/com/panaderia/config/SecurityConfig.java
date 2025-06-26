@@ -1,23 +1,36 @@
 package com.panaderia.config;
 
+import com.panaderia.delicia.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthFilter;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -25,12 +38,25 @@ public class SecurityConfig {
     }
 
     @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Permitir todos los orígenes temporalmente
-        configuration.setAllowedMethods(Arrays.asList("*")); // Permitir todos los métodos
-        configuration.setAllowedHeaders(Arrays.asList("*")); // Permitir todos los headers
-        configuration.setAllowCredentials(false); // Cambiar a false cuando usamos "*"
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -40,26 +66,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                // Deshabilitar CSRF
                 .csrf(csrf -> csrf.disable())
-
-                // Configurar CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // Configurar autorización - PERMITIR TODO TEMPORALMENTE
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // ⚠️ PERMITIR TODO - SOLO PARA DEBUG
+                    // Rutas públicas sin JWT
+                    .requestMatchers("/auth/**").permitAll()
+                    .requestMatchers("/api/productos/**").permitAll()
+                    .requestMatchers("/api/categorias/**").permitAll()
+                    .requestMatchers("/api/empleados/**").permitAll()
+
+                    // Rutas protegidas (requieren token)
+                    .requestMatchers("/api/ventas/**").authenticated()
+                    .requestMatchers("/api/clientes/**").authenticated()
+
+                    // Todo lo demás también requiere autenticación
+                    .anyRequest().authenticated()
                 )
-
-                // Configurar sesión como stateless
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Deshabilitar headers de seguridad que pueden causar problemas
-                .headers(headers -> headers
-                        .frameOptions().disable()
-                        .contentTypeOptions().disable())
-
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
